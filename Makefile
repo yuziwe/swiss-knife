@@ -1,20 +1,20 @@
-# Install location
-prefix ?= /usr/local/bin
-# Target
-target := terminal-translator
+GOENV=CGO_ENABLED=0
+GO=$(GOENV) $(shell which go)
+GOFLAGS=-ldflags="-extldflags -static -s -w" -trimpath
+PREFIX?=/usr/local/bin
+TARGET=terminal-translator
 
 terminal-translator:
-	go get -C terminal-translator/
-	go build -C terminal-translator/ -o ts main.go
+	@$(GO) build -C terminal-translator/ $(GOFLAGS) -o ts main.go
 
-install: $(target)
-	cp terminal-translator/ts $(prefix)
+install: $(TARGET)
+	@cp terminal-translator/ts $(PREFIX) || echo "...... Install failed!"
 
 help:
 	@echo "...... make"
 	@echo "...... make terminal-translator"
 	@echo "...... make install"
-	@echo "...... make prefix=<location> install"
+	@echo "...... make PREFIX=<location> install"
 	@echo "...... make help"
 	@echo "...... make clean"
 

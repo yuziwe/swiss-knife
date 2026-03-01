@@ -19,4 +19,6 @@ go.work
 
 # Custom files
 terminal-translator/ts
+geosite/
+geoip/
 

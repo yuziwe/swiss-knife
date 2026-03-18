@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"strings"
-	tsize "github.com/kopoli/go-terminal-size" // For get current terminal size
+	tsize "github.com/kopoli/go-terminal-size" // For getting current terminal size
 )
 
 const (
@@ -107,11 +107,12 @@ func (m *OpenAI)completions(model string, messages []Message) (*Response, error)
 		Model: 			 model,
 		Messages: 		 messages,
 		Temperature: 	 0.5,
+		MaxTokens:		 8192,
 		ReasoningEffort: "low",
 	}
 
 	// Serialize
-	req_body, err := json.Marshal(completion);
+	req_body, err := json.Marshal(completion)
 	if err != nil {
 		fmt.Println("ERROR: json serialize failed: ", err)
 		return nil, nil
@@ -206,7 +207,7 @@ func main() {
 		{ Role: "user"  , Content: os.Args[1] },
 	}
 
-	resp, err := client.completions("gpt-5.1", msgs)
+	resp, err := client.completions(model, msgs)
 	if err != nil {
 		fmt.Println("ERROR: create completions failed!: ", err)
 		os.Exit(1)

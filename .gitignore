@@ -18,7 +18,7 @@
 go.work
 
 # Custom files
-terminal-translator/ts
+terminal-translator/terminal-translator
 geosite/
 geoip/
 

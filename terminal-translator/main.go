@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"encoding/json"
 	"strings"
-	tsize "github.com/kopoli/go-terminal-size" // For getting current terminal size
+	tsize "github.com/kopoli/go-terminal-size"
+	cache "github.com/yuziwe/swiss-knife/terminal-translator/cache"
 )
 
 const (
@@ -58,8 +59,12 @@ type Completion struct {
 // ===========Request filed===========
 
 type OpenAI struct {
-	BaseUrl		string
-	ApiKey		string
+	BaseUrl string
+	ApiKey  string
+}
+
+type SystemCtx struct {
+	Cache   cache.CacheSchema
 }
 
 // ===========Response filed===========
@@ -173,7 +178,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	model := "gpt-5.1"
+	model := "kimi-k2"
 	if len(os.Args) > 2 {
 		model = os.Args[2]
 	}
@@ -197,14 +202,36 @@ func main() {
 	}
 
 	client := &OpenAI{
-		BaseUrl:  base_api_url,
-		ApiKey:   api_key,
+		BaseUrl: base_api_url,
+		ApiKey:  api_key,
 	}
 
 	// Messages
 	msgs := []Message{
 		{ Role: "system", Content: SYSTEM_PROMPT },
 		{ Role: "user"  , Content: os.Args[1] },
+	}
+
+	ctx := &SystemCtx{
+		Cache:   &cache.LocalCache{},
+	}
+
+	// Init cache system
+	if err := ctx.Cache.Init(); err != nil {
+		fmt.Println("ERROR: initialize cache system failed: ", err)
+		os.Exit(1)
+	}
+
+	if ctx.Cache.Exist(os.Args[1]) {
+		res, err := ctx.Cache.Rd(os.Args[1])
+		if err == nil {
+			// Cache hit
+			fmt.Println(ColorYellow, os.Args[1], ColorReset)
+			generate_separator()
+			fmt.Println(ColorGreen, res, ColorReset)
+			generate_separator()
+			os.Exit(0)
+		}
 	}
 
 	resp, err := client.completions(model, msgs)
@@ -216,6 +243,11 @@ func main() {
 	if len(resp.Choices) == 0 {
 		fmt.Println("ERROR: got empty response!")
 		os.Exit(1)
+	}
+
+	// Add to cache
+	if err := ctx.Cache.Wt(os.Args[1], resp.Choices[0].RMessage.Content); err != nil {
+		fmt.Println("WARN: Write into cache failed, err: ", err)
 	}
 
 	// Output

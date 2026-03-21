@@ -85,14 +85,15 @@ func (m *LocalCache) Rd(k string) (string, error) {
 }
 
 func (m *LocalCache) Wt(k string, v string) error {
-	kx := sha256.Sum256([]byte(strings.ToLower(strings.TrimSpace(k))))
+	ck := strings.ToLower(strings.TrimSpace(k))
+	kx := sha256.Sum256([]byte(ck))
 
 	cache_path := filepath.Join(m.HomeDir, hex.EncodeToString(kx[:4]))
 	if err := os.WriteFile(cache_path, []byte(v), 0644); err != nil {
 		return err
 	}
 
-	mapping := fmt.Sprintf("<%s> <%s>\n", k, hex.EncodeToString(kx[:4]))
+	mapping := fmt.Sprintf("<%s> <%s>\n", ck, hex.EncodeToString(kx[:4]))
 
 	f, err := os.OpenFile(m.MetaPath, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0644)
 	if err != nil {

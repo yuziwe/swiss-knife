@@ -19,3 +19,6 @@ https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/sing/geo/geoip/twitte
 https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/sing/geo/geosite/twitter.srs
 https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/sing/geo/geosite/instagram.srs
 https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/sing/geo/geosite/instagram@ads.srs
+https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/sing/geo/geosite/jd.srs
+https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/sing/geo/geosite/jd@!cn.srs
+https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/sing/geo/geosite/jd@ads.srs

@@ -1,11 +1,11 @@
 package cache
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
-	"crypto/sha256"
 	"strings"
 )
 
@@ -17,8 +17,8 @@ type CacheSchema interface {
 }
 
 type LocalCache struct {
-	MetaPath	string
-	HomeDir 	string
+	MetaPath string
+	HomeDir  string
 }
 
 func (m *LocalCache) Init() error {
@@ -95,7 +95,7 @@ func (m *LocalCache) Wt(k string, v string) error {
 
 	mapping := fmt.Sprintf("<%s> <%s>\n", ck, hex.EncodeToString(kx[:4]))
 
-	f, err := os.OpenFile(m.MetaPath, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0644)
+	f, err := os.OpenFile(m.MetaPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -108,4 +108,3 @@ func (m *LocalCache) Wt(k string, v string) error {
 
 	return nil
 }
-

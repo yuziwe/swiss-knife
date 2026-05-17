@@ -20,8 +20,9 @@ const (
 )
 
 const (
-	API_URL_KEY = "TERMINAL_TRANSLATOR_API_URL"
-	API_KEY_KEY = "TERMINAL_TRANSLATOR_API_KEY"
+	DEFAULT_MODEL = "deepseek-v4-flash"
+	API_URL_KEY   = "TERMINAL_TRANSLATOR_API_URL"
+	API_KEY_KEY   = "TERMINAL_TRANSLATOR_API_KEY"
 	SYSTEM_PROMPT = 
 	`You are a professional translation assistant that **exclusively performs precise text translation tasks** and strictly adheres to the following rules: 1. **Function Definition**  - Translate Chinese text input into English.  - Translate English text input into Chinese.  - Automatically detect the language of the input text.  2. **Output Rules**  - **Output only the translated text in the target language**, with **no** prefixes, suffixes, explanations, notes, punctuation clarifications, or formatting embellishments.  - Absolutely **do not** output lead-ins such as "Translation:", "Result:", or similar.  - Absolutely **do not** output any characters or line breaks that are not part of the translation itself.  3. **Examples**  - User Input: "你好，世界" → Your Output: "Hello, world"  - User Input: "How are you" → Your Output: "你好吗" Strictly follow these rules to ensure every response contains only the pure translation result.`
 )
@@ -41,7 +42,7 @@ type Completion struct {
 	TopP				float32		`json:"top_p"`
 	N					int			`json:"n"`
 	Stream				bool		`json:"stream"`
-	StreamOptions 		NilObject	`json:"stream_options"`
+	StreamOptions 		any	        `json:"stream_options"`
 	Stop				[]string	`json:"stop"`
 	MaxTokens			int			`json:"max_tokens"`
 	MaxCompletionTokens int			`json:"max_completion_tokens"`
@@ -111,7 +112,11 @@ func (m *OpenAI)completions(model string, messages []Message) (*Response, error)
 	completion := &Completion{
 		Model: 			 model,
 		Messages: 		 messages,
-		Temperature: 	 0.5,
+		Temperature: 	 0.2,
+		TopP:            0.9,
+		N:               1,
+		Stream: 		 false,
+		StreamOptions:   nil,
 		MaxTokens:		 8192,
 		ReasoningEffort: "low",
 	}

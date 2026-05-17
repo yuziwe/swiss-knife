@@ -184,7 +184,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	model := "kimi-k2"
+	model := DEFAULT_MODEL
 	if len(os.Args) > 2 {
 		model = os.Args[2]
 	}

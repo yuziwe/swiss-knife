@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"io"
-	"net/http"
 	"encoding/json"
-	"strings"
+	"fmt"
 	tsize "github.com/kopoli/go-terminal-size"
 	cache "github.com/yuziwe/swiss-knife/terminal-translator/cache"
+	"io"
+	"net/http"
+	"os"
+	"strings"
 )
 
 const (
@@ -23,40 +23,40 @@ const (
 	DEFAULT_MODEL = "deepseek-v4-flash"
 	API_URL_KEY   = "TERMINAL_TRANSLATOR_API_URL"
 	API_KEY_KEY   = "TERMINAL_TRANSLATOR_API_KEY"
-	SYSTEM_PROMPT = 
-	`You are a professional translation assistant that **exclusively performs precise text translation tasks** and strictly adheres to the following rules: 1. **Function Definition**  - Translate Chinese text input into English.  - Translate English text input into Chinese.  - Automatically detect the language of the input text.  2. **Output Rules**  - **Output only the translated text in the target language**, with **no** prefixes, suffixes, explanations, notes, punctuation clarifications, or formatting embellishments.  - Absolutely **do not** output lead-ins such as "Translation:", "Result:", or similar.  - Absolutely **do not** output any characters or line breaks that are not part of the translation itself.  3. **Examples**  - User Input: "你好，世界" → Your Output: "Hello, world"  - User Input: "How are you" → Your Output: "你好吗" Strictly follow these rules to ensure every response contains only the pure translation result.`
+	SYSTEM_PROMPT = `You are a professional translation assistant that **exclusively performs precise text translation tasks** and strictly adheres to the following rules: 1. **Function Definition**  - Translate Chinese text input into English.  - Translate English text input into Chinese.  - Automatically detect the language of the input text.  2. **Output Rules**  - **Output only the translated text in the target language**, with **no** prefixes, suffixes, explanations, notes, punctuation clarifications, or formatting embellishments.  - Absolutely **do not** output lead-ins such as "Translation:", "Result:", or similar.  - Absolutely **do not** output any characters or line breaks that are not part of the translation itself.  3. **Examples**  - User Input: "你好，世界" → Your Output: "Hello, world"  - User Input: "How are you" → Your Output: "你好吗" Strictly follow these rules to ensure every response contains only the pure translation result.`
 )
 
 // ===========Request filed===========
-type NilObject struct {}
+type NilObject struct{}
 
-type Message struct{
-	Role	string`json:"role"`
-	Content string`json:"content"`
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
 type Completion struct {
-	Model				string		`json:"model"`
-	Messages 			[]Message	`json:"messages"`
-	Temperature 		float32		`json:"temperature"`
-	TopP				float32		`json:"top_p"`
-	N					int			`json:"n"`
-	Stream				bool		`json:"stream"`
-	StreamOptions 		any	        `json:"stream_options"`
-	Stop				[]string	`json:"stop"`
-	MaxTokens			int			`json:"max_tokens"`
-	MaxCompletionTokens int			`json:"max_completion_tokens"`
-	PresendPenalty 		int			`json:"presence_penalty"`
-	FrequencyPenalty 	int			`json:"frequency_penalty"`
-	LogitBias			NilObject	`json:"logit_bias"`
-	User				string		`json:"user"`
-	Tools				[]NilObject	`json:"tools"`
-	ResponseFormat		NilObject	`json:"response_formata"`
-	Seed				int			`json:"seed"`
-	ReasoningEffort		string		`json:"reasoning_effort"`
-	Modalities			[]string	`json:"modalities"`
-	Audio				NilObject	`json:"audio"`
+	Model               string      `json:"model"`
+	Messages            []Message   `json:"messages"`
+	Temperature         float32     `json:"temperature"`
+	TopP                float32     `json:"top_p"`
+	N                   int         `json:"n"`
+	Stream              bool        `json:"stream"`
+	StreamOptions       any         `json:"stream_options"`
+	Stop                []string    `json:"stop"`
+	MaxTokens           int         `json:"max_tokens"`
+	MaxCompletionTokens int         `json:"max_completion_tokens"`
+	PresendPenalty      int         `json:"presence_penalty"`
+	FrequencyPenalty    int         `json:"frequency_penalty"`
+	LogitBias           NilObject   `json:"logit_bias"`
+	User                string      `json:"user"`
+	Tools               []NilObject `json:"tools"`
+	ResponseFormat      NilObject   `json:"response_formata"`
+	Seed                int         `json:"seed"`
+	ReasoningEffort     string      `json:"reasoning_effort"`
+	Modalities          []string    `json:"modalities"`
+	Audio               NilObject   `json:"audio"`
 }
+
 // ===========Request filed===========
 
 type OpenAI struct {
@@ -65,7 +65,7 @@ type OpenAI struct {
 }
 
 type SystemCtx struct {
-	Cache   cache.CacheSchema
+	Cache cache.CacheSchema
 }
 
 // ===========Response filed===========
@@ -86,10 +86,10 @@ type RMessage struct {
 }
 
 type Choices struct {
-	Index              int     `json:"index"`
+	Index              int      `json:"index"`
 	RMessage           RMessage `json:"message"`
-	FinishReason       string  `json:"finish_reason"`
-	NativeFinishReason string  `json:"native_finish_reason"`
+	FinishReason       string   `json:"finish_reason"`
+	NativeFinishReason string   `json:"native_finish_reason"`
 }
 
 type CompletionTokensDetails struct {
@@ -102,22 +102,23 @@ type Usage struct {
 	PromptTokens            int                     `json:"prompt_tokens"`
 	CompletionTokensDetails CompletionTokensDetails `json:"completion_tokens_details"`
 }
+
 // ===========Response filed===========
 
-func (m *OpenAI)completions(model string, messages []Message) (*Response, error) {
+func (m *OpenAI) completions(model string, messages []Message) (*Response, error) {
 	// New http client
 	client := &http.Client{}
 
 	// Fill http request body
 	completion := &Completion{
-		Model: 			 model,
-		Messages: 		 messages,
-		Temperature: 	 0.2,
+		Model:           model,
+		Messages:        messages,
+		Temperature:     0.2,
 		TopP:            0.9,
 		N:               1,
-		Stream: 		 false,
+		Stream:          false,
 		StreamOptions:   nil,
-		MaxTokens:		 8192,
+		MaxTokens:       8192,
 		ReasoningEffort: "low",
 	}
 
@@ -193,9 +194,9 @@ func main() {
 	generate_separator()
 
 	// Read API_URL from environment
-	base_api_url := os.Getenv(API_URL_KEY);
+	base_api_url := os.Getenv(API_URL_KEY)
 	if base_api_url == "" {
-		fmt.Println("ERROR: ", API_URL_KEY , " is empty!")
+		fmt.Println("ERROR: ", API_URL_KEY, " is empty!")
 		os.Exit(1)
 	}
 
@@ -213,12 +214,12 @@ func main() {
 
 	// Messages
 	msgs := []Message{
-		{ Role: "system", Content: SYSTEM_PROMPT },
-		{ Role: "user"  , Content: os.Args[1] },
+		{Role: "system", Content: SYSTEM_PROMPT},
+		{Role: "user", Content: os.Args[1]},
 	}
 
 	ctx := &SystemCtx{
-		Cache:   &cache.LocalCache{},
+		Cache: &cache.LocalCache{},
 	}
 
 	// Init cache system
@@ -261,4 +262,3 @@ func main() {
 	fmt.Println(ColorGreen, resp.Choices[0].RMessage.Content, ColorReset)
 	generate_separator()
 }
-

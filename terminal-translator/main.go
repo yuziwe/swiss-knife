@@ -1,14 +1,13 @@
 package main
 
 import (
-	"encoding/json"
+    "flag"
 	"fmt"
 	tsize "github.com/kopoli/go-terminal-size"
 	cache "github.com/yuziwe/swiss-knife/terminal-translator/cache"
-	"io"
-	"net/http"
-	"os"
-	"strings"
+    provider "github.com/yuziwe/swiss-knife/terminal-translator/provider"
+    "os"
+    "strings"
 )
 
 const (
@@ -26,221 +25,95 @@ const (
 	SYSTEM_PROMPT = `You are a professional translation assistant that **exclusively performs precise text translation tasks** and strictly adheres to the following rules: 1. **Function Definition**  - Translate Chinese text input into English.  - Translate English text input into Chinese.  - Automatically detect the language of the input text.  2. **Output Rules**  - **Output only the translated text in the target language**, with **no** prefixes, suffixes, explanations, notes, punctuation clarifications, or formatting embellishments.  - Absolutely **do not** output lead-ins such as "Translation:", "Result:", or similar.  - Absolutely **do not** output any characters or line breaks that are not part of the translation itself.  3. **Examples**  - User Input: "你好，世界" → Your Output: "Hello, world"  - User Input: "How are you" → Your Output: "你好吗" Strictly follow these rules to ensure every response contains only the pure translation result.`
 )
 
-// ===========Request filed===========
-type NilObject struct{}
-
-type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-type Completion struct {
-	Model               string      `json:"model"`
-	Messages            []Message   `json:"messages"`
-	Temperature         float32     `json:"temperature"`
-	TopP                float32     `json:"top_p"`
-	N                   int         `json:"n"`
-	Stream              bool        `json:"stream"`
-	StreamOptions       any         `json:"stream_options"`
-	Stop                []string    `json:"stop"`
-	MaxTokens           int         `json:"max_tokens"`
-	MaxCompletionTokens int         `json:"max_completion_tokens"`
-	PresendPenalty      int         `json:"presence_penalty"`
-	FrequencyPenalty    int         `json:"frequency_penalty"`
-	LogitBias           NilObject   `json:"logit_bias"`
-	User                string      `json:"user"`
-	Tools               []NilObject `json:"tools"`
-	ResponseFormat      NilObject   `json:"response_formata"`
-	Seed                int         `json:"seed"`
-	ReasoningEffort     string      `json:"reasoning_effort"`
-	Modalities          []string    `json:"modalities"`
-	Audio               NilObject   `json:"audio"`
-}
-
-// ===========Request filed===========
-
-type OpenAI struct {
-	BaseUrl string
-	ApiKey  string
-}
+var (
+    DebugMode bool
+    Model string
+)
 
 type SystemCtx struct {
 	Cache cache.CacheSchema
+    Provider provider.LLMProvider
 }
 
-// ===========Response filed===========
-type Response struct {
-	ID      string    `json:"id"`
-	Object  string    `json:"object"`
-	Created int       `json:"created"`
-	Model   string    `json:"model"`
-	Choices []Choices `json:"choices"`
-	Usage   Usage     `json:"usage"`
-}
-
-type RMessage struct {
-	Role             string `json:"role"`
-	Content          string `json:"content"`
-	ReasoningContent any    `json:"reasoning_content"`
-	ToolCalls        any    `json:"tool_calls"`
-}
-
-type Choices struct {
-	Index              int      `json:"index"`
-	RMessage           RMessage `json:"message"`
-	FinishReason       string   `json:"finish_reason"`
-	NativeFinishReason string   `json:"native_finish_reason"`
-}
-
-type CompletionTokensDetails struct {
-	ReasoningTokens int `json:"reasoning_tokens"`
-}
-
-type Usage struct {
-	CompletionTokens        int                     `json:"completion_tokens"`
-	TotalTokens             int                     `json:"total_tokens"`
-	PromptTokens            int                     `json:"prompt_tokens"`
-	CompletionTokensDetails CompletionTokensDetails `json:"completion_tokens_details"`
-}
-
-// ===========Response filed===========
-
-func (m *OpenAI) completions(model string, messages []Message) (*Response, error) {
-	// New http client
-	client := &http.Client{}
-
-	// Fill http request body
-	completion := &Completion{
-		Model:           model,
-		Messages:        messages,
-		Temperature:     0.2,
-		TopP:            0.9,
-		N:               1,
-		Stream:          false,
-		StreamOptions:   nil,
-		MaxTokens:       8192,
-		ReasoningEffort: "low",
-	}
-
-	// Serialize
-	req_body, err := json.Marshal(completion)
-	if err != nil {
-		fmt.Println("ERROR: json serialize failed: ", err)
-		return nil, nil
-	}
-
-	// Create new request
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/chat/completions", m.BaseUrl), strings.NewReader(string(req_body)))
-	if err != nil {
-		fmt.Println("ERROR: create https request failed!")
-		return nil, nil
-	}
-
-	// Add Header
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", m.ApiKey))
-
-	// Do Request
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("ERROR: https request failed!: ", err)
-		return nil, nil
-	}
-	defer resp.Body.Close()
-
-	resp_bytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("ERROR: read response body failed!: ", err)
-		return nil, nil
-	}
-
-	// Parse response
-	resp_body := &Response{}
-	if err := json.Unmarshal(resp_bytes, resp_body); err != nil {
-		fmt.Println("ERROR: json unserialize failed!: ", err)
-		return nil, nil
-	}
-
-	return resp_body, nil
-}
-
-func generate_separator() {
-	s, err := tsize.GetSize()
+func ugly_separators() {
+	ws, err := tsize.GetSize()
 	if err != nil {
 		fmt.Println("ERROR: get window size failed!: ", err)
 		os.Exit(1)
 	}
 
-	for i := 0; i < s.Width; i++ {
-		fmt.Print("=")
-	}
+    fmt.Println(strings.Repeat("=", ws.Width))
+}
 
-	fmt.Println()
+func usage() {
+    fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s <-d|-m> <English|Chinese>\n", os.Args[0])
+    flag.PrintDefaults()
+}
+
+func prompt_banner() {
+	ugly_separators()
+	fmt.Println(ColorRed, "Current model: ", Model, ColorReset)
+	ugly_separators()
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Usage:", os.Args[0], " <English|Chinese> <Model>")
+    flag.StringVar(&Model, "m", DEFAULT_MODEL, "Set backend model")
+    flag.BoolVar(&DebugMode, "d", false, "Open debug mode")
+    flag.Parse()
+
+	if flag.NArg() < 1 {
+        usage()
 		os.Exit(1)
 	}
 
-	model := DEFAULT_MODEL
-	if len(os.Args) > 2 {
-		model = os.Args[2]
-	}
+    user_prompt := flag.Args()[0]
 
-	generate_separator()
-	fmt.Println(ColorRed, "Current model: ", model, ColorReset)
-	generate_separator()
+    prompt_banner()
 
-	// Read API_URL from environment
 	base_api_url := os.Getenv(API_URL_KEY)
 	if base_api_url == "" {
 		fmt.Println("ERROR: ", API_URL_KEY, " is empty!")
 		os.Exit(1)
 	}
 
-	// Read API_KEY from environment
 	api_key := os.Getenv(API_KEY_KEY)
 	if api_key == "" {
 		fmt.Println("ERROR: ", API_KEY_KEY, " is empty!")
 		os.Exit(1)
 	}
 
-	client := &OpenAI{
-		BaseUrl: base_api_url,
-		ApiKey:  api_key,
-	}
-
-	// Messages
-	msgs := []Message{
-		{Role: "system", Content: SYSTEM_PROMPT},
-		{Role: "user", Content: os.Args[1]},
-	}
-
 	ctx := &SystemCtx{
 		Cache: &cache.LocalCache{},
+        Provider: &provider.OpenAI{
+            BaseUrl: base_api_url,
+            ApiKey: api_key,
+        },
+	}
+
+	msgs := []provider.Message{
+		{Role: "system", Content: SYSTEM_PROMPT},
+		{Role: "user", Content: user_prompt},
 	}
 
 	// Init cache system
-	if err := ctx.Cache.Init(); err != nil {
+	if err := ctx.Cache.Init(DebugMode); err != nil {
 		fmt.Println("ERROR: initialize cache system failed: ", err)
 		os.Exit(1)
 	}
 
-	if ctx.Cache.Exist(os.Args[1]) {
-		res, err := ctx.Cache.Rd(os.Args[1])
+	if ctx.Cache.Exist(user_prompt) {
+		res, err := ctx.Cache.Rd(user_prompt)
 		if err == nil {
 			// Cache hit
-			fmt.Println(ColorYellow, os.Args[1], ColorReset)
-			generate_separator()
+			fmt.Println(ColorYellow, user_prompt, ColorReset)
+			ugly_separators()
 			fmt.Println(ColorGreen, res, ColorReset)
-			generate_separator()
+			ugly_separators()
 			os.Exit(0)
 		}
 	}
 
-	resp, err := client.completions(model, msgs)
+	resp, err := ctx.Provider.Completions(Model, msgs)
 	if err != nil {
 		fmt.Println("ERROR: create completions failed!: ", err)
 		os.Exit(1)
@@ -252,13 +125,16 @@ func main() {
 	}
 
 	// Add to cache
-	if err := ctx.Cache.Wt(os.Args[1], resp.Choices[0].RMessage.Content); err != nil {
+	if err := ctx.Cache.Wt(user_prompt, resp.Choices[0].RMessage.Content); err != nil {
 		fmt.Println("WARN: Write into cache failed, err: ", err)
 	}
 
 	// Output
-	fmt.Println(ColorYellow, os.Args[1], ColorReset)
-	generate_separator()
+	fmt.Println(ColorYellow, user_prompt, ColorReset)
+
+	ugly_separators()
+
 	fmt.Println(ColorGreen, resp.Choices[0].RMessage.Content, ColorReset)
-	generate_separator()
+
+	ugly_separators()
 }

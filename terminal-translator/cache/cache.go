@@ -10,7 +10,7 @@ import (
 )
 
 type CacheSchema interface {
-	Init() error
+	Init(debug bool) error
 	Exist(k string) bool
 	Rd(k string) (string, error)
 	Wt(k string, v string) error
@@ -21,7 +21,7 @@ type LocalCache struct {
 	HomeDir  string
 }
 
-func (m *LocalCache) Init() error {
+func (m *LocalCache) Init(debug bool) error {
 	cache_home, err := os.UserCacheDir()
 	if err != nil {
 		fmt.Println("ERROR: Invalid cache directory")
@@ -40,8 +40,13 @@ func (m *LocalCache) Init() error {
 		return err
 	}
 
-	m.HomeDir = filepath.Join(cache_home, filepath.Base(prog))
-	if err := os.Mkdir(m.HomeDir, os.ModePerm); err != nil && !os.IsExist(err) {
+    if debug {
+	    m.HomeDir = filepath.Join(cache_home, filepath.Base(prog), "debug")
+    } else {
+	    m.HomeDir = filepath.Join(cache_home, filepath.Base(prog))
+    }
+
+	if err := os.MkdirAll(m.HomeDir, os.ModePerm); err != nil && !os.IsExist(err) {
 		fmt.Println("ERROR: Create cache directory failed")
 		return err
 	}

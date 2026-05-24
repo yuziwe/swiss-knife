@@ -8,6 +8,7 @@ import (
     provider "github.com/yuziwe/swiss-knife/terminal-translator/provider"
     "os"
     "strings"
+	"net/http"
 )
 
 const (
@@ -87,6 +88,7 @@ func main() {
         Provider: &provider.OpenAI{
             BaseUrl: base_api_url,
             ApiKey: api_key,
+            HttpClient: &http.Client{},
         },
 	}
 
@@ -119,13 +121,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(resp.Choices) == 0 {
-		fmt.Println("ERROR: got empty response!")
-		os.Exit(1)
-	}
-
 	// Add to cache
-	if err := ctx.Cache.Wt(user_prompt, resp.Choices[0].RMessage.Content); err != nil {
+	if err := ctx.Cache.Wt(user_prompt, resp.Content); err != nil {
 		fmt.Println("WARN: Write into cache failed, err: ", err)
 	}
 
@@ -134,7 +131,7 @@ func main() {
 
 	ugly_separators()
 
-	fmt.Println(ColorGreen, resp.Choices[0].RMessage.Content, ColorReset)
+	fmt.Println(ColorGreen, resp.Content, ColorReset)
 
 	ugly_separators()
 }

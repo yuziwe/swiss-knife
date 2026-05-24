@@ -8,15 +8,16 @@ import (
     "strings"
 )
 
-type NilObject struct{}
+type nilObject struct{}
 
 type OpenAI struct {
 	BaseUrl string
 	ApiKey  string
+    HttpClient *http.Client
 }
 
 // ===========Request filed===========
-type Completion struct {
+type completion struct {
 	Model               string      `json:"model"`
 	Messages            []Message   `json:"messages"`
 	Temperature         float32     `json:"temperature"`
@@ -29,57 +30,54 @@ type Completion struct {
 	MaxCompletionTokens int         `json:"max_completion_tokens"`
 	PresendPenalty      int         `json:"presence_penalty"`
 	FrequencyPenalty    int         `json:"frequency_penalty"`
-	LogitBias           NilObject   `json:"logit_bias"`
+	LogitBias           nilObject   `json:"logit_bias"`
 	User                string      `json:"user"`
-	Tools               []NilObject `json:"tools"`
-	ResponseFormat      NilObject   `json:"response_formata"`
+	Tools               []nilObject `json:"tools"`
+	ResponseFormat      nilObject   `json:"response_formata"`
 	Seed                int         `json:"seed"`
 	ReasoningEffort     string      `json:"reasoning_effort"`
 	Modalities          []string    `json:"modalities"`
-	Audio               NilObject   `json:"audio"`
+	Audio               nilObject   `json:"audio"`
 }
 
 // ===========Response filed===========
-type Response struct {
+type response struct {
 	ID      string    `json:"id"`
+	Model   string    `json:"model"`
+	Usage   usage     `json:"usage"`
 	Object  string    `json:"object"`
 	Created int       `json:"created"`
-	Model   string    `json:"model"`
-	Choices []Choices `json:"choices"`
-	Usage   Usage     `json:"usage"`
+	Choices []choices `json:"choices"`
 }
 
-type RMessage struct {
+type choices struct {
+	Index              int      `json:"index"`
+	RMessage           respMessage `json:"message"`
+	FinishReason       string   `json:"finish_reason"`
+	NativeFinishReason string   `json:"native_finish_reason"`
+}
+
+type respMessage struct {
 	Role             string `json:"role"`
 	Content          string `json:"content"`
 	ReasoningContent any    `json:"reasoning_content"`
 	ToolCalls        any    `json:"tool_calls"`
 }
 
-type Choices struct {
-	Index              int      `json:"index"`
-	RMessage           RMessage `json:"message"`
-	FinishReason       string   `json:"finish_reason"`
-	NativeFinishReason string   `json:"native_finish_reason"`
-}
-
-type CompletionTokensDetails struct {
-	ReasoningTokens int `json:"reasoning_tokens"`
-}
-
-type Usage struct {
+type usage struct {
 	CompletionTokens        int                     `json:"completion_tokens"`
 	TotalTokens             int                     `json:"total_tokens"`
 	PromptTokens            int                     `json:"prompt_tokens"`
-	CompletionTokensDetails CompletionTokensDetails `json:"completion_tokens_details"`
+	CompletionTokensDetails completionTokensDetails `json:"completion_tokens_details"`
 }
 
-func (m *OpenAI) Completions(model string, messages []Message) (*Response, error) {
-	// New http client
-	client := &http.Client{}
+type completionTokensDetails struct {
+	ReasoningTokens int `json:"reasoning_tokens"`
+}
 
+func (m *OpenAI) Completions(model string, messages []Message) (*TTResponse, error) {
 	// Fill http request body
-	completion := &Completion{
+	req_completion := &completion{
 		Model:           model,
 		Messages:        messages,
 		Temperature:     0.2,
@@ -92,17 +90,15 @@ func (m *OpenAI) Completions(model string, messages []Message) (*Response, error
 	}
 
 	// Serialize
-	req_body, err := json.Marshal(completion)
+	req_body, err := json.Marshal(req_completion)
 	if err != nil {
-		fmt.Println("ERROR: json serialize failed: ", err)
-		return nil, nil
+		return nil, fmt.Errorf("ERROR: json serialize failed: %v", err)
 	}
 
 	// Create new request
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/chat/completions", m.BaseUrl), strings.NewReader(string(req_body)))
 	if err != nil {
-		fmt.Println("ERROR: create https request failed!")
-		return nil, nil
+		return nil, fmt.Errorf("ERROR: create https request failed!: %v", err)
 	}
 
 	// Add Header
@@ -110,25 +106,35 @@ func (m *OpenAI) Completions(model string, messages []Message) (*Response, error
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", m.ApiKey))
 
 	// Do Request
-	resp, err := client.Do(req)
+	resp, err := m.HttpClient.Do(req)
 	if err != nil {
-		fmt.Println("ERROR: https request failed!: ", err)
-		return nil, nil
+		return nil, fmt.Errorf("ERROR: https request failed!: %v", err)
 	}
 	defer resp.Body.Close()
 
+    if err := preprocess(resp); err != nil {
+        return nil, err
+    }
+
 	resp_bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("ERROR: read response body failed!: ", err)
-		return nil, nil
+		return nil, fmt.Errorf("ERROR: read response body failed!: %v", err)
 	}
 
 	// Parse response
-	resp_body := &Response{}
+	resp_body := &response{}
 	if err := json.Unmarshal(resp_bytes, resp_body); err != nil {
-		fmt.Println("ERROR: json unserialize failed!: ", err)
-		return nil, nil
+		return nil, fmt.Errorf("ERROR: json unserialize failed!: %v", err)
 	}
 
-	return resp_body, nil
+	if len(resp_body.Choices) == 0 {
+		return nil, fmt.Errorf("ERROR: got empty response!")
+	}
+
+	return &TTResponse{
+        ID: resp_body.ID,
+        Model: resp_body.Model,
+        Content: resp_body.Choices[0].RMessage.Content,
+    }, nil
 }
+

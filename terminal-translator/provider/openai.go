@@ -1,19 +1,19 @@
 package provider
 
 import (
-    "fmt"
-	"net/http"
 	"encoding/json"
+	"fmt"
 	"io"
-    "strings"
+	"net/http"
+	"strings"
 )
 
 type nilObject struct{}
 
 type OpenAI struct {
-	BaseUrl string
-	ApiKey  string
-    HttpClient *http.Client
+	BaseUrl    string
+	ApiKey     string
+	HttpClient *http.Client
 }
 
 // ===========Request filed===========
@@ -51,10 +51,10 @@ type response struct {
 }
 
 type choices struct {
-	Index              int      `json:"index"`
+	Index              int         `json:"index"`
 	RMessage           respMessage `json:"message"`
-	FinishReason       string   `json:"finish_reason"`
-	NativeFinishReason string   `json:"native_finish_reason"`
+	FinishReason       string      `json:"finish_reason"`
+	NativeFinishReason string      `json:"native_finish_reason"`
 }
 
 type respMessage struct {
@@ -112,9 +112,9 @@ func (m *OpenAI) Completions(model string, messages []Message) (*TTResponse, err
 	}
 	defer resp.Body.Close()
 
-    if err := preprocess(resp); err != nil {
-        return nil, err
-    }
+	if err := preprocess(resp); err != nil {
+		return nil, err
+	}
 
 	resp_bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -132,9 +132,8 @@ func (m *OpenAI) Completions(model string, messages []Message) (*TTResponse, err
 	}
 
 	return &TTResponse{
-        ID: resp_body.ID,
-        Model: resp_body.Model,
-        Content: resp_body.Choices[0].RMessage.Content,
-    }, nil
+		ID:      resp_body.ID,
+		Model:   resp_body.Model,
+		Content: resp_body.Choices[0].RMessage.Content,
+	}, nil
 }
-

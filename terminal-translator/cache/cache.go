@@ -40,11 +40,11 @@ func (m *LocalCache) Init(debug bool) error {
 		return err
 	}
 
-    if debug {
-	    m.HomeDir = filepath.Join(cache_home, filepath.Base(prog), "debug")
-    } else {
-	    m.HomeDir = filepath.Join(cache_home, filepath.Base(prog))
-    }
+	if debug {
+		m.HomeDir = filepath.Join(cache_home, filepath.Base(prog), "debug")
+	} else {
+		m.HomeDir = filepath.Join(cache_home, filepath.Base(prog))
+	}
 
 	if err := os.MkdirAll(m.HomeDir, os.ModePerm); err != nil && !os.IsExist(err) {
 		fmt.Println("ERROR: Create cache directory failed")

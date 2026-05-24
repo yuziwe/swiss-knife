@@ -1,14 +1,14 @@
 package main
 
 import (
-    "flag"
+	"flag"
 	"fmt"
 	tsize "github.com/kopoli/go-terminal-size"
 	cache "github.com/yuziwe/swiss-knife/terminal-translator/cache"
-    provider "github.com/yuziwe/swiss-knife/terminal-translator/provider"
-    "os"
-    "strings"
+	provider "github.com/yuziwe/swiss-knife/terminal-translator/provider"
 	"net/http"
+	"os"
+	"strings"
 )
 
 const (
@@ -27,13 +27,13 @@ const (
 )
 
 var (
-    DebugMode bool
-    Model string
+	DebugMode bool
+	Model     string
 )
 
 type SystemCtx struct {
-	Cache cache.CacheSchema
-    Provider provider.LLMProvider
+	Cache    cache.CacheSchema
+	Provider provider.LLMProvider
 }
 
 func ugly_separators() {
@@ -43,12 +43,12 @@ func ugly_separators() {
 		os.Exit(1)
 	}
 
-    fmt.Println(strings.Repeat("=", ws.Width))
+	fmt.Println(strings.Repeat("=", ws.Width))
 }
 
 func usage() {
-    fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s <-d|-m> <English|Chinese>\n", os.Args[0])
-    flag.PrintDefaults()
+	fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s <-d|-m> <English|Chinese>\n", os.Args[0])
+	flag.PrintDefaults()
 }
 
 func prompt_banner() {
@@ -58,18 +58,18 @@ func prompt_banner() {
 }
 
 func main() {
-    flag.StringVar(&Model, "m", DEFAULT_MODEL, "Set backend model")
-    flag.BoolVar(&DebugMode, "d", false, "Open debug mode")
-    flag.Parse()
+	flag.StringVar(&Model, "m", DEFAULT_MODEL, "Set backend model")
+	flag.BoolVar(&DebugMode, "d", false, "Open debug mode")
+	flag.Parse()
 
 	if flag.NArg() < 1 {
-        usage()
+		usage()
 		os.Exit(1)
 	}
 
-    user_prompt := flag.Args()[0]
+	user_prompt := flag.Args()[0]
 
-    prompt_banner()
+	prompt_banner()
 
 	base_api_url := os.Getenv(API_URL_KEY)
 	if base_api_url == "" {
@@ -85,11 +85,11 @@ func main() {
 
 	ctx := &SystemCtx{
 		Cache: &cache.LocalCache{},
-        Provider: &provider.OpenAI{
-            BaseUrl: base_api_url,
-            ApiKey: api_key,
-            HttpClient: &http.Client{},
-        },
+		Provider: &provider.OpenAI{
+			BaseUrl:    base_api_url,
+			ApiKey:     api_key,
+			HttpClient: &http.Client{},
+		},
 	}
 
 	msgs := []provider.Message{

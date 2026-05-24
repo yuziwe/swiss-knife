@@ -4,14 +4,16 @@ GOFLAGS=-ldflags="-extldflags -static -s -w" -trimpath
 PREFIX?=/usr/local/bin
 TARGET=terminal-translator
 
+all: terminal-translator
+
 terminal-translator:
-	@$(GO) build -C terminal-translator/ $(GOFLAGS) -o $@ main.go
+	$(GO) build -C terminal-translator/ $(GOFLAGS) -o $@ main.go
 
 openwrt-ruleset-update:
 	chmod +x openwrt-ruleset-update/update.fish 
 	./openwrt-ruleset-update/update.fish openwrt-ruleset-update/basic-ruleset
 
-install: $(TARGET)
+install:
 	@cp terminal-translator/$(TARGET) $(PREFIX) || echo "...... Install failed!"
 
 help:

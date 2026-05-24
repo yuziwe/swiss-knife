@@ -22,3 +22,6 @@ terminal-translator/terminal-translator
 geosite/
 geoip/
 
+# Boauk
+.env
+
